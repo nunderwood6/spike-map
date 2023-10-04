@@ -1,0 +1,15 @@
+{
+"type": "FeatureCollection",
+"name": "aoi-points-wgs84",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature",
+"geometry": { "type": "Point", "coordinates": [ -117.827228531581326, 13.031998169394555 ] } },
+{ "type": "Feature",
+"geometry": { "type": "Point", "coordinates": [ -120.14367882447803, 34.098444681332431 ] } },
+{ "type": "Feature", 
+"geometry": { "type": "Point", "coordinates": [ -83.154086408953447, 33.586899131200603 ] } },
+{ "type": "Feature",
+"geometry": { "type": "Point", "coordinates": [ -86.153108553838692, 12.594746705003585 ] } }
+]
+}
