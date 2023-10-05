@@ -12,21 +12,22 @@ h1 {
 }
 
 div.spacer {
-	height: 20vh;
+	height: 1vh;
 }
-
 
 
 div.container {
 	position: relative;
-	width: 90vw;
-	height: 85vh;
+	width: 100vw;
+	height: 95vh;
 	max-width: 800px;
 	margin: 0 auto;
 	overflow: hidden;
 	display: flex;
     justify-content: center;
     align-items: center;
+    background-color: #f0f9ff;
+
 }
 
 div.fade {
@@ -36,15 +37,14 @@ div.fade {
         -webkit-box-shadow: inset 0 0 25px 25px #fff;
           box-shadow: inset 0 0 25px 25px #fff;
         z-index: 2;
-    }
+}
 
 
 div.map {
 	position: relative;
 	width: 100%;
 	height: 100%;
-	overflow: hidden;
-	background-color: #f0f9ff;
+	/*overflow: hidden;*/
 }
 
 path {

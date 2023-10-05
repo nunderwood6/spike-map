@@ -1,25 +1,55 @@
+
+//global references
+var outerContainer = d3.select("div.container");
+var mapContainer = d3.select("div.map");
+//data
+var aoiExtent;
+var rasterExtent;
+var countries;
+var states;
+var statesMesh;
+var detentions;
+//svg and path
+var svg;
+var pathMexico;
+var spikes;
+
+//for slider
+var currentTime = "3-2023";
+
+
 function loadData(){
     Promise.all([
       d3.json("data/aoi-points-wgs84.geojson"),
       d3.json("data/raster_extent_wgs84.geojson"),
       d3.json("data/countries-filtered.json"),
-      d3.json("data/mexico-states.json")
+      d3.json("data/mexico-states.json"),
+      d3.csv("data/presentados-series.csv")
     ])
-    .then(function([aoiExtentJSON,rasterExtentJSON,countriesJSON,statesTOPO]){
-        var aoiExtent = aoiExtentJSON;
-        var rasterExtent = rasterExtentJSON;
-        var countries = topojson.feature(countriesJSON, countriesJSON.objects["countries-filtered"]).features;
-        var states = topojson.feature(statesTOPO, statesTOPO.objects["mexico-states"]).features;
-        var statesMesh = topojson.mesh(statesTOPO, statesTOPO.objects["mexico-states"], (a,b) => a !== b);
-        positionMap(aoiExtent,rasterExtent,countries,states,statesMesh);
+    .then(function([aoiExtentJSON,rasterExtentJSON,countriesJSON,statesTOPO,presentados]){
+        aoiExtent = aoiExtentJSON;
+        rasterExtent = rasterExtentJSON;
+        countries = topojson.feature(countriesJSON, countriesJSON.objects["countries-filtered"]).features;
+        states = topojson.feature(statesTOPO, statesTOPO.objects["mexico-states"]).features;
+        statesMesh = topojson.mesh(statesTOPO, statesTOPO.objects["mexico-states"], (a,b) => a !== b);
+        detentions = presentados;
 
+        joinData();
+        positionMap();
     });
 }
 
 loadData();
 
-var outerContainer = d3.select("div.container");
-var mapContainer = d3.select("div.map");
+function joinData(){
+  //join data
+  for(var state of states){
+      var geoid = state.properties.fips;
+      var match = detentions.filter(d => d.geoid == geoid)[0];
+      state.properties.spikeData = match;
+  }
+
+}
 
 function maintainAspectRatio() {
 
@@ -38,12 +68,17 @@ function maintainAspectRatio() {
 
 
 
-function positionMap(aoiExtent,rasterExtent,countries,states,statesMesh){
+function positionMap(){
 
   //setup aspect ratio
   maintainAspectRatio();
-  //setup listener to adjust map container size
-  d3.select(window).on("resize", maintainAspectRatio)
+  
+  //no page resize
+  d3.select(window).on("resize", function(){
+    maintainAspectRatio();
+    drawSpikes();
+
+  })
 
   var w = document.querySelector("div.map").getBoundingClientRect().width;
   var h = document.querySelector("div.map").getBoundingClientRect().height;
@@ -65,10 +100,10 @@ function positionMap(aoiExtent,rasterExtent,countries,states,statesMesh){
 ;
 
 	//path generator
-    const pathMexico = d3.geoPath()
+    pathMexico = d3.geoPath()
              .projection(albersMexico);
 
-    var svg = mapContainer
+    svg = mapContainer
               .append("svg")
               .attr("viewBox", `0 0 ${w} ${h}`)
               .attr("overflow", "visible")
@@ -104,7 +139,7 @@ function positionMap(aoiExtent,rasterExtent,countries,states,statesMesh){
     		.enter()
     		.append("path")
     			.attr("d", pathMexico)
-    			.attr("fill", "#eee")
+    			.attr("fill", "#ddd")
     			.attr("stroke", "none");
 
     //state vectors
@@ -113,9 +148,8 @@ function positionMap(aoiExtent,rasterExtent,countries,states,statesMesh){
         .enter()
         .append("path")
             .attr("d", pathMexico)
-            .attr("fill", "#cdcdcd")
+            .attr("fill", "#ccc")
             .attr("stroke", "none");
-
 
     //states mesh (inner boundaries only)
     svg.append("g")
@@ -127,8 +161,42 @@ function positionMap(aoiExtent,rasterExtent,countries,states,statesMesh){
           .attr("stroke", "#fff")
           .attr("stroke-width", 0.5);
 
+    spikes = svg.append("g").attr("class", "spikes")
+                  .attr("fill", "black")
+                  .attr("fill-opacity", 0.5)
+                  .attr("stroke", "black")
+                  .attr("stroke-width", 0.5);
 
-																			                                                                                                                                                                                                                                                                            
+    drawSpikes();
+
+
+											                                                                                                                                                                                                                                                                            
+
+}
+
+function drawSpikes(){
+
+  //spikes
+  function spike(length, width = 10){
+    return `M${-width / 2},0L0,${-length}L${width / 2},0`;
+  }
+
+  // Construct the length scale.
+  var spikeScale = d3.scaleLinear()
+                      .domain([0,30000])
+                      .range([0,500]);
+
+  //clear
+  spikes.empty();
+
+  //draw spikes
+  spikes.selectAll("path")
+      .data(states)
+      .join("path")
+        .attr("transform", d=> `translate(${pathMexico.centroid(d)[0]},${pathMexico.centroid(d)[1]})`)
+        .attr("d", d => spike(spikeScale(Number(d.properties.spikeData[currentTime]))));
+      
+
 
 }
 
