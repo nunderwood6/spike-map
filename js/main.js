@@ -13,9 +13,15 @@ var detentions;
 var svg;
 var pathMexico;
 var spikes;
+//for adjusting symbol size relative to viewbox
+var w;
+var h;
+var ratioViewbox = 1;
 
 //for slider
-var currentTime = "3-2023";
+var currentTime = "1-2001";
+var timeElement = d3.select("span.highlight");
+
 
 
 function loadData(){
@@ -40,6 +46,149 @@ function loadData(){
 }
 
 loadData();
+//make slider
+
+function dateRange(startDate, endDate) {
+  var start      = startDate.split('-');
+  var end        = endDate.split('-');
+  var startYear  = parseInt(start[1]);
+  var endYear    = parseInt(end[1]);
+  var dates      = [];
+
+  for(var i = startYear; i <= endYear; i++) {
+    var endMonth = i != endYear ? 11 : parseInt(end[0]) - 1;
+    var startMon = i === startYear ? parseInt(start[0])-1 : 0;
+    for(var j = startMon; j <= endMonth; j = j > 12 ? j % 12 || 11 : j+1) {
+      var month = j+1;
+      var displayMonth = month < 10 ? '0'+month : month;
+      dates.push([displayMonth,i].join('-'));
+    }
+  }
+  return dates;
+}
+
+var formatDate = function(dateString){
+    var [m,y] = dateString.split("-");
+    var date = new Date(y,m-1,1).getTime();
+    return date;
+}
+
+function fmtMonthYear(time){
+  var dateObj = new Date(time);
+  var month = dateObj.toLocaleString('default', { month: 'long' });
+  var year = dateObj.getFullYear();
+  return month + " " + year;
+}
+
+function fmtMonthYearNum(time){
+  var dateObj = new Date(time);
+  var month = dateObj.getMonth()+1;
+  var year = dateObj.getFullYear();
+  return month + "-" + year;
+}
+
+function makeSliderRange(dateRange){
+  var range = {};
+  var steps = dateRange.length;
+  for(var i = 0; i < dateRange.length; i++){
+
+      if(i==0){
+        range["min"] = formatDate(dateRange[i]);
+      } else if (i==dateRange.length-1){
+        range["max"] = formatDate(dateRange[i]);
+      } else {
+        range[`${100/steps*i}%`] = formatDate(dateRange[i]);
+      }
+  }
+  return range;
+
+}
+
+
+function makeSlider(){
+  // make slider
+  var slider = document.getElementById('slider');
+
+  var range = dateRange("1-2001","7-2023");
+  var formattedRange = makeSliderRange(range);
+
+  noUiSlider.create(slider, {
+      start: [formatDate("1-2001")],
+      snap: true,
+      range: formattedRange
+        //   pips: {
+    //      mode: 'steps',
+    //      filter: function ( value, type ) {
+    //       return (years.indexOf(value) != -1) ? 0 : -1;
+    // }
+  });
+
+  var userInteracted = false; //check whether user has interacted
+  var hasStarted = false;
+
+  //event handling
+  slider.noUiSlider.on("update", function(){
+    var time = slider.noUiSlider.get(true);
+    var monthYear = fmtMonthYearNum(time);
+    //if new time
+    if(currentTime != monthYear){
+      //reset current
+      currentTime = monthYear;
+      //update text
+      timeElement.html(fmtMonthYear(time));
+      //redraw spikes
+      drawSpikes();
+
+    }
+
+  
+
+    // var current = Number(yearElement.html());
+    // if(val != current) {
+    //   yearElement.html(val);
+    //   var numAffected = affectedData.filter(e=>e.year==val)[0].Int;
+    //   affectedElement.html(formatRound(numAffected));
+    //   frames.classed("visible", d => (d == val))
+    // }
+
+  })
+
+  slider.noUiSlider.on("slide", function(){
+      userInteracted = true;
+  })
+
+  //above fires once on creation, so reset userInteracted to false
+  userInteracted = false;
+
+  // function animateFrames(year){
+  //   //if slider is used stop animation
+  //   if(userInteracted) return;
+
+  //   //otherwise loop through
+  //   slider.noUiSlider.set(year);
+
+  //   //get refererence to next frame
+  //   var i = years.indexOf(year); //current index
+  //   if(i<years.length-1){
+  //     i++;
+  //   } else {
+  //     i = 0;
+  //   }
+
+  //   setTimeout(function(){
+  //     animateFrames(years[i]);
+  //   },1500);
+
+
+  // }
+  // //start animation
+  // animateFrames();
+
+}
+
+
+
+makeSlider();
 
 function joinData(){
   //join data
@@ -51,7 +200,7 @@ function joinData(){
 
 }
 
-function maintainAspectRatio() {
+function maintainAspectRatio(first) {
 
   //get width and height of container
   var containerWidth = outerContainer.node().getBoundingClientRect().width;
@@ -64,6 +213,15 @@ function maintainAspectRatio() {
   //setup map container to be responsive
   mapContainer.style("max-width", `${widthRatio*containerHeight}px`);
   mapContainer.style("max-height", `${heightRatio*containerWidth}px`);
+
+
+  if(!first){
+    //update ratio to viewbox size then draw spikes
+    var currentW = mapContainer.node().getBoundingClientRect().width;
+    ratioViewbox = w/currentW;
+    drawSpikes();
+  }
+
 }
 
 
@@ -71,17 +229,15 @@ function maintainAspectRatio() {
 function positionMap(){
 
   //setup aspect ratio
-  maintainAspectRatio();
+  maintainAspectRatio(true);
   
   //no page resize
   d3.select(window).on("resize", function(){
     maintainAspectRatio();
-    drawSpikes();
-
   })
 
-  var w = document.querySelector("div.map").getBoundingClientRect().width;
-  var h = document.querySelector("div.map").getBoundingClientRect().height;
+  w = document.querySelector("div.map").getBoundingClientRect().width;
+  h = document.querySelector("div.map").getBoundingClientRect().height;
 
   var margin = {top: 0, right: 0, bottom: 0, left: 0}
 
@@ -168,26 +324,28 @@ function positionMap(){
                   .attr("stroke-width", 0.5);
 
     drawSpikes();
-
-
-											                                                                                                                                                                                                                                                                            
+							                                                                                                                                                                                                                                                                            
 
 }
 
 function drawSpikes(){
 
+
+  var spikeWidth = 10*ratioViewbox;
   //spikes
-  function spike(length, width = 10){
+  function spike(length, width = spikeWidth){
     return `M${-width / 2},0L0,${-length}L${width / 2},0`;
   }
+
+  var spikeMaxHeight = 500*ratioViewbox;
 
   // Construct the length scale.
   var spikeScale = d3.scaleLinear()
                       .domain([0,30000])
-                      .range([0,500]);
+                      .range([1,spikeMaxHeight]);
 
   //clear
-  spikes.empty();
+  spikes.selectAll("path").remove();
 
   //draw spikes
   spikes.selectAll("path")

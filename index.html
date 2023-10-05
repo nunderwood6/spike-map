@@ -9,6 +9,7 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
         <!--put your external stylesheet links here-->
+        <link rel="stylesheet" href="css/nouislider.min.css">
         <link rel="stylesheet" href="css/style.css">
         <!--[if IE<9]>
             <link rel="stylesheet" href="css/style.ie.css">
@@ -20,17 +21,23 @@
 
     <body>
        
-       <h1>Border Externalization</h1>
+       <h1>Beyond the Wall</h1>
+       <!-- <h2>Migrant Detention in Mexico</h2> -->
 
        <div class="container">
+          <h2 class="title"> Migrant Detentions in
+            <span class="time">
+              <span class="highlight">January 2001</span>
+              <span id="slider"></span>
+            </span>
+          </h2>
           <div class="fade"></div>
-            <div class="map">
-              
-            </div>
+            <div class="map"></div>
        </div>
 
        <div class="spacer"></div>
 
+       <script src="lib/nouislider.min.js"></script>
        <script src="lib/topojson.min.js"></script>
        <script src="lib/d3-geo-projection.min.js"></script>
        <script src="lib/d3.v5.min.js"></script>
