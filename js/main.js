@@ -137,19 +137,10 @@ function makeSlider(){
       //update text
       timeElement.html(fmtMonthYear(time));
       //redraw spikes
-      drawSpikes();
+      updateSpikes();
 
     }
 
-  
-
-    // var current = Number(yearElement.html());
-    // if(val != current) {
-    //   yearElement.html(val);
-    //   var numAffected = affectedData.filter(e=>e.year==val)[0].Int;
-    //   affectedElement.html(formatRound(numAffected));
-    //   frames.classed("visible", d => (d == val))
-    // }
 
   })
 
@@ -219,7 +210,7 @@ function maintainAspectRatio(first) {
     //update ratio to viewbox size then draw spikes
     var currentW = mapContainer.node().getBoundingClientRect().width;
     ratioViewbox = w/currentW;
-    drawSpikes();
+    updateSpikes();
   }
 
 }
@@ -317,18 +308,69 @@ function positionMap(){
           .attr("stroke", "#fff")
           .attr("stroke-width", 0.5);
 
-    spikes = svg.append("g").attr("class", "spikes")
+    var spikeGroups = svg.append("g").attr("class", "spikes")
                   .attr("fill", "black")
                   .attr("fill-opacity", 0.5)
                   .attr("stroke", "black")
-                  .attr("stroke-width", 0.5);
+                  .attr("stroke-width", 0.5)
+                  .selectAll("g")
+                  .data(states)
+                  .enter()
+                  .append("g")
+                    .attr("transform", function(d){
+                      var x = pathMexico.centroid(d)[0];
+                      var y = pathMexico.centroid(d)[1];
+                      //adjust Chiapas & Tabasco
+                      if(d.properties["name"]=="Chiapas"){
+                        x+=3;
+                      }
+                      if(d.properties["name"]=="Tabasco"){
+                        x-=2;
+                        y-=2;
+                      }
+                      return `translate(${x},${y})`;
+                    });
 
-    drawSpikes();
+      spikes =  spikeGroups.append("path");
+
+      var defaultLabels = ["Chiapas","Tamaulipas","Baja California", "Oaxaca","Chihuahua","Veracruz"];
+
+      //add labels/tooltips
+      var spikeLabels = mapContainer.select("div.labels").selectAll("div")
+                                        .data(states)
+                                        .join("div")
+                                        .html(function(d){
+                                          return `<p>${d.properties["name"]}</p>`
+                                        })
+                                        .style("left", function(d){
+                                          var x = pathMexico.centroid(d)[0];
+                                          //adjust Chiapas & Tabasco
+                                          if(d.properties["name"]=="Chiapas"){
+                                            x+=3;
+                                          }
+                                          if(d.properties["name"]=="Tabasco"){
+                                            x-=2;
+                                          }
+                                          var xPer = x/w*100;
+                                          return xPer+"%";
+                                        })
+                                        .style("top", function(d){
+                                          var y = pathMexico.centroid(d)[1];
+                                          //adjust Chiapas & Tabasco
+                                          if(d.properties["name"]=="Tabasco"){
+                                            y-=2;
+                                          }
+                                          var yPer = y/h*100;
+                                          return yPer+"%";
+                                        })
+                                        .style("opacity", d => (defaultLabels.indexOf(d.properties["name"]) == -1) ? 0 : 1)
+
+                                      
+    updateSpikes();
 							                                                                                                                                                                                                                                                                            
-
 }
 
-function drawSpikes(){
+function updateSpikes(){
 
 
   var spikeWidth = 10*ratioViewbox;
@@ -338,24 +380,17 @@ function drawSpikes(){
   }
 
   var spikeMaxHeight = 500*ratioViewbox;
+  //adjust if mobile(Chiapas escaping)
 
   // Construct the length scale.
   var spikeScale = d3.scaleLinear()
                       .domain([0,30000])
                       .range([1,spikeMaxHeight]);
 
-  //clear
-  spikes.selectAll("path").remove();
-
   //draw spikes
-  spikes.selectAll("path")
-      .data(states)
-      .join("path")
-        .attr("transform", d=> `translate(${pathMexico.centroid(d)[0]},${pathMexico.centroid(d)[1]})`)
-        .attr("d", d => spike(spikeScale(Number(d.properties.spikeData[currentTime]))));
+  spikes.attr("d", d => spike(spikeScale(Number(d.properties.spikeData[currentTime]))))
+        .attr("opacity", d => (d.properties.spikeData[currentTime]==0 ? 0 : 1));
       
-
-
 }
 
 
