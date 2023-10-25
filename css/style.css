@@ -44,6 +44,7 @@ div.fade {
         -webkit-box-shadow: inset 0 0 20px 20px #fff;
           box-shadow: inset 0 0 20px 20px #fff;
         z-index: 2;
+        pointer-events: none;
 }
 
 
@@ -63,7 +64,8 @@ div.labels {
 	width: 100%;
 	height: 100%;
 	font-size: 10px;
-	z-index: 3;
+	z-index: 2;
+	pointer-events: none;
 }
 
 div.labels div {
@@ -75,17 +77,22 @@ div.labels div {
 div.labels p {
 	margin: 0;
 	text-align: center;
+	line-height: 1.1;
 }
 
 div.map svg {
 	z-index: 1;
 }
 
+.spikes {
+	pointer-events: none;
+}
+
 /*slider styles*/
 
 div.container h2.title {
 	font-size:20px;
-	line-height: 1.4;
+	line-height: 1.5;
 	width: 80%;
 	text-align: center;
 	position: absolute;
@@ -101,12 +108,12 @@ div.container h2.title {
 */
 }
 
-span.highlight {
+span.highlight,span.total {
     font-weight: bold;
     background-color: rgba(255,255,255);
     color: #000;
     /*text-shadow: 0 0 3px #000;*/
-    padding: 2px 5px 2px 5px;
+    padding: 2px 4px 2px 4px;
 }
 
 span.time {

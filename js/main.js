@@ -9,10 +9,13 @@ var countries;
 var states;
 var statesMesh;
 var detentions;
+var totalDetentions;
+var totalSpan =outerContainer.select("span.total");
 //svg and path
 var svg;
 var pathMexico;
 var spikes;
+var spikeLabels;
 //for adjusting symbol size relative to viewbox
 var w;
 var h;
@@ -21,6 +24,8 @@ var ratioViewbox = 1;
 //for slider
 var currentTime = "1-2001";
 var timeElement = d3.select("span.highlight");
+var commaFormat = d3.format(',');
+
 
 
 
@@ -39,6 +44,7 @@ function loadData(){
         states = topojson.feature(statesTOPO, statesTOPO.objects["mexico-states"]).features;
         statesMesh = topojson.mesh(statesTOPO, statesTOPO.objects["mexico-states"], (a,b) => a !== b);
         detentions = presentados;
+        totalDetentions = presentados.filter(row=>row["Entidad federativa"]=="Total")[0];
 
         joinData();
         positionMap();
@@ -290,7 +296,7 @@ function positionMap(){
     			.attr("stroke", "none");
 
     //state vectors
-    svg.append("g").selectAll(".states")
+    var stateFills = svg.append("g").selectAll(".states")
         .data(states)
         .enter()
         .append("path")
@@ -299,7 +305,7 @@ function positionMap(){
             .attr("stroke", "none");
 
     //states mesh (inner boundaries only)
-    svg.append("g")
+    svg.append("g").attr("pointer-events","none")
         .append("path")
           .datum(statesMesh)
           .attr("d", pathMexico)
@@ -336,11 +342,13 @@ function positionMap(){
       var defaultLabels = ["Chiapas","Tamaulipas","Baja California", "Oaxaca","Chihuahua","Veracruz"];
 
       //add labels/tooltips
-      var spikeLabels = mapContainer.select("div.labels").selectAll("div")
+      spikeLabels = mapContainer.select("div.labels").selectAll("div")
                                         .data(states)
                                         .join("div")
+                                        .attr("class", d=> d.properties.geoid)
                                         .html(function(d){
-                                          return `<p>${d.properties["name"]}</p>`
+                                          return `<p>${d.properties["name"]}</p>
+                                                  <p class="val"></p>`
                                         })
                                         .style("left", function(d){
                                           var x = pathMexico.centroid(d)[0];
@@ -363,8 +371,25 @@ function positionMap(){
                                           var yPer = y/h*100;
                                           return yPer+"%";
                                         })
-                                        .style("opacity", d => (defaultLabels.indexOf(d.properties["name"]) == -1) ? 0 : 1)
+                                        .style("opacity", d => (defaultLabels.indexOf(d.properties["name"]) == -1) ? 0 : 1);
 
+      //add tooltips
+      stateFills.on("mouseover",function(d){
+          var geoid = d.properties.fips;
+
+          //set label opacity
+          spikeLabels.style("opacity", function(d){
+            if(d.properties.fips==geoid){
+              return 1;
+            }
+            else{
+              return 0;
+            }
+          });
+        })
+          .on("mouseout", function(d){
+          spikeLabels.style("opacity", d => (defaultLabels.indexOf(d.properties["name"]) == -1) ? 0 : 1)
+      });
                                       
     updateSpikes();
 							                                                                                                                                                                                                                                                                            
@@ -390,6 +415,13 @@ function updateSpikes(){
   //draw spikes
   spikes.attr("d", d => spike(spikeScale(Number(d.properties.spikeData[currentTime]))))
         .attr("opacity", d => (d.properties.spikeData[currentTime]==0 ? 0 : 1));
+
+  //set value label
+  spikeLabels.each(function(d){
+      d3.select(this).select(".val").html(d=> commaFormat(d.properties.spikeData[currentTime]));
+  });
+
+  totalSpan.html(commaFormat(totalDetentions[currentTime]));
       
 }
 
